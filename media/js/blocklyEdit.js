@@ -4431,3 +4431,60 @@ function updateMonitorButtonState() {
 		monitorBtn.title = window.languageManager?.getMessage('MONITOR_BUTTON_TITLE', '開啟 Monitor') || 'Open Monitor';
 	}
 }
+
+// ===== 視覺化分頁 (Main / Functions) =====
+function initWorkspaceTabs() {
+    const tabMain = document.getElementById('tabMain');
+    const tabFunctions = document.getElementById('tabFunctions');
+    if (!tabMain || !tabFunctions) return;
+
+    function applyTabFilter(isFunctionTab) {
+        if (typeof Blockly === 'undefined' || !Blockly.getMainWorkspace()) return;
+        const workspace = Blockly.getMainWorkspace();
+
+        // 樣式切換
+        if (isFunctionTab) {
+            tabFunctions.style.background = 'var(--vscode-button-background)';
+            tabFunctions.style.color = 'var(--vscode-button-foreground)';
+            tabMain.style.background = 'var(--vscode-button-secondaryBackground)';
+            tabMain.style.color = 'var(--vscode-button-secondaryForeground)';
+        } else {
+            tabMain.style.background = 'var(--vscode-button-background)';
+            tabMain.style.color = 'var(--vscode-button-foreground)';
+            tabFunctions.style.background = 'var(--vscode-button-secondaryBackground)';
+            tabFunctions.style.color = 'var(--vscode-button-secondaryForeground)';
+        }
+
+        // 摺疊/展開積木與鏡頭移動
+        let targetBlock = null;
+        workspace.getTopBlocks().forEach(block => {
+            const isFunc = block.type.includes('procedures_def') || block.type === 'arduino_function';
+            if (isFunctionTab) {
+                if (!isFunc) block.setCollapsed(true);
+                else {
+                    block.setCollapsed(false);
+                    if (!targetBlock) targetBlock = block;
+                }
+            } else {
+                if (isFunc) block.setCollapsed(true);
+                else {
+                    block.setCollapsed(false);
+                    if (block.type === 'micropython_main' || block.type === 'arduino_setup' || block.type === 'arduino_loop') {
+                        targetBlock = block;
+                    } else if (!targetBlock) {
+                        targetBlock = block;
+                    }
+                }
+            }
+        });
+
+        if (targetBlock) {
+            workspace.centerOnBlock(targetBlock.id);
+        }
+    }
+
+    tabMain.addEventListener('click', () => applyTabFilter(false));
+    tabFunctions.addEventListener('click', () => applyTabFilter(true));
+}
+
+document.addEventListener('DOMContentLoaded', initWorkspaceTabs);
